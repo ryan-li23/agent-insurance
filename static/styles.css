@@ -197,6 +197,28 @@ a:hover {
     margin-top: 0.25rem;
 }
 
+.file-list {
+    margin-top: 0.5rem;
+}
+
+.file-list__items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.file-list__item {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    padding: 0.4rem 0.6rem;
+    background: rgba(99,102,241,0.08);
+    border-radius: 6px;
+    border: 1px solid rgba(99,102,241,0.15);
+}
+
 .btn {
     display: inline-flex;
     align-items: center;

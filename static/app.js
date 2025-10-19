@@ -41,6 +41,13 @@
     const openDebateInlineDetails = new Set();
     const openEvidenceDetails = new Set();
 
+    // Store file selections to preserve across re-renders
+    let continueFormFiles = {
+        photos: null,
+        invoices: null,
+        fnol_files: null
+    };
+
     const roleLabels = {
         curator: "Evidence Curator",
         interpreter: "Policy Interpreter",
@@ -429,12 +436,12 @@
             } catch (err) {
                 const hasDetails = cleaned.includes("<details");
                 if (hasDetails) {
-                body.innerHTML = cleaned.replace(/\n/g, "<br>");
-                persistHtmlDetails(
-                    body,
-                    `debate-inline-${index}`,
-                    openDebateInlineDetails
-                );
+                    body.innerHTML = cleaned.replace(/\n/g, "<br>");
+                    persistHtmlDetails(
+                        body,
+                        `debate-inline-${index}`,
+                        openDebateInlineDetails
+                    );
                 } else {
                     body.innerHTML = escapeHtml(cleaned).replace(/\n/g, "<br>");
                 }
@@ -532,16 +539,16 @@
         });
     }
 
-function renderInvoice(payload, container) {
-    container.innerHTML = "";
-    const expense = (payload.result && payload.result.expense) || {};
-    if (!Object.keys(expense).length) {
-        const p = document.createElement("p");
-        p.className = "muted";
-        p.textContent = "No invoice reconciliation data yet.";
-        container.appendChild(p);
-        return;
-    }
+    function renderInvoice(payload, container) {
+        container.innerHTML = "";
+        const expense = (payload.result && payload.result.expense) || {};
+        if (!Object.keys(expense).length) {
+            const p = document.createElement("p");
+            p.className = "muted";
+            p.textContent = "No invoice reconciliation data yet.";
+            container.appendChild(p);
+            return;
+        }
 
         const card = document.createElement("div");
         card.className = "invoice-card";
@@ -574,207 +581,218 @@ function renderInvoice(payload, container) {
             tbody.appendChild(tr);
         });
 
-    table.appendChild(tbody);
-    card.appendChild(table);
-    container.appendChild(card);
-}
-
-function renderObjections(payload, container) {
-    container.innerHTML = "";
-    const objections = (payload.result && payload.result.objections) || [];
-    if (!objections.length) {
-        const p = document.createElement("p");
-        p.className = "muted";
-        p.textContent = "No objections logged.";
-        container.appendChild(p);
-        return;
+        table.appendChild(tbody);
+        card.appendChild(table);
+        container.appendChild(card);
     }
-    const list = document.createElement("ul");
-    list.className = "objection-list";
-    objections.forEach((obj) => {
-        const li = document.createElement("li");
-        const status = (obj.status || "").toLowerCase();
-        let badgeClass = "badge--current";
-        if (status.includes("blocking")) {
-            badgeClass = "badge--alert";
-        } else if (status.includes("resolved")) {
-            badgeClass = "badge--complete";
+
+    function renderObjections(payload, container) {
+        container.innerHTML = "";
+        const objections = (payload.result && payload.result.objections) || [];
+        if (!objections.length) {
+            const p = document.createElement("p");
+            p.className = "muted";
+            p.textContent = "No objections logged.";
+            container.appendChild(p);
+            return;
         }
-        li.innerHTML = `<strong>${escapeHtml(obj.type || "Objection")}</strong>
+        const list = document.createElement("ul");
+        list.className = "objection-list";
+        objections.forEach((obj) => {
+            const li = document.createElement("li");
+            const status = (obj.status || "").toLowerCase();
+            let badgeClass = "badge--current";
+            if (status.includes("blocking")) {
+                badgeClass = "badge--alert";
+            } else if (status.includes("resolved")) {
+                badgeClass = "badge--complete";
+            }
+            li.innerHTML = `<strong>${escapeHtml(obj.type || "Objection")}</strong>
             <span class="badge ${badgeClass}">${escapeHtml(obj.status || "")}</span>
             <div class="muted">${escapeHtml((obj.message || "").replace(/\\n/g, "\n"))}</div>`;
-        list.appendChild(li);
-    });
-    container.appendChild(list);
-}
-
-function renderCitations(payload, container) {
-    container.innerHTML = "";
-    const citations = (payload.result && payload.result.citations) || [];
-    if (!citations.length) {
-        const p = document.createElement("p");
-        p.className = "muted";
-        p.textContent = "No citations captured.";
-        container.appendChild(p);
-        return;
+            list.appendChild(li);
+        });
+        container.appendChild(list);
     }
-    const list = document.createElement("ul");
-    list.className = "citation-list";
-    citations.forEach((cit) => {
-        const li = document.createElement("li");
-        li.textContent = `${cit.policy || "Policy"} — ${cit.section || "Section"} (p.${cit.page || "?"})`;
-        list.appendChild(li);
-    });
-    container.appendChild(list);
-}
 
-function renderChecklist(payload, container) {
-    container.innerHTML = "";
-    const checklist = payload.checklist || {};
-    const entries = Object.entries(checklist);
-    if (!entries.length) {
-        const p = document.createElement("p");
-        p.className = "muted";
-        p.textContent = "Reviewer called no follow-ups for this run.";
-        container.appendChild(p);
-        return;
-    }
-    const list = document.createElement("div");
-    list.className = "checklist";
-    entries.forEach(([item, done], index) => {
-        const id = `check-${index}`;
-        const label = document.createElement("label");
-        const input = document.createElement("input");
-        input.type = "checkbox";
-        input.id = id;
-        input.checked = Boolean(done);
-        input.dataset.item = item;
-        input.addEventListener("change", handleChecklistChange);
-        label.appendChild(input);
-        const span = document.createElement("span");
-        span.textContent = item;
-        label.appendChild(span);
-        list.appendChild(label);
-    });
-    container.appendChild(list);
-}
-
-function renderDecision(payload) {
-    decisionContent.innerHTML = "";
-    const decision = payload.decision || {};
-    const metadata = payload.metadata || {};
-    const outcome = decision.outcome;
-
-    if (!outcome) {
-        decisionSummary.textContent = "Run the review to generate a decision.";
-        if (followupContainer) {
-            followupContainer.innerHTML = "";
+    function renderCitations(payload, container) {
+        container.innerHTML = "";
+        const citations = (payload.result && payload.result.citations) || [];
+        if (!citations.length) {
+            const p = document.createElement("p");
+            p.className = "muted";
+            p.textContent = "No citations captured.";
+            container.appendChild(p);
+            return;
         }
-        const p = document.createElement("p");
-        p.className = "muted";
-        p.textContent =
-            "Once the debate completes, the consolidated decision will appear here.";
-        decisionContent.appendChild(p);
-        return;
+        const list = document.createElement("ul");
+        list.className = "citation-list";
+        citations.forEach((cit) => {
+            const li = document.createElement("li");
+            li.textContent = `${cit.policy || "Policy"} — ${cit.section || "Section"} (p.${cit.page || "?"})`;
+            list.appendChild(li);
+        });
+        container.appendChild(list);
     }
 
-    decisionSummary.textContent = metadata.paused_for_user
-        ? "Reviewer pause awaiting clarifications"
-        : `${outcome} outcome available`;
+    function renderChecklist(payload, container) {
+        container.innerHTML = "";
+        const checklist = payload.checklist || {};
+        const entries = Object.entries(checklist);
+        if (!entries.length) {
+            const p = document.createElement("p");
+            p.className = "muted";
+            p.textContent = "Reviewer called no follow-ups for this run.";
+            container.appendChild(p);
+            return;
+        }
+        const list = document.createElement("div");
+        list.className = "checklist";
+        entries.forEach(([item, done], index) => {
+            const id = `check-${index}`;
+            const label = document.createElement("label");
+            const input = document.createElement("input");
+            input.type = "checkbox";
+            input.id = id;
+            input.checked = Boolean(done);
+            input.dataset.item = item;
+            input.addEventListener("change", handleChecklistChange);
+            label.appendChild(input);
+            const span = document.createElement("span");
+            span.textContent = item;
+            label.appendChild(span);
+            list.appendChild(label);
+        });
+        container.appendChild(list);
+    }
 
-    const topRow = document.createElement("div");
-    topRow.className = "decision-top";
+    function renderDecision(payload) {
+        decisionContent.innerHTML = "";
+        const decision = payload.decision || {};
+        const metadata = payload.metadata || {};
+        const outcome = decision.outcome;
 
-    const decisionCard = document.createElement("div");
-    decisionCard.className = "decision-card";
-    decisionCard.innerHTML = `<div class="decision-card__label muted">Final outcome</div>
+        if (!outcome) {
+            decisionSummary.textContent = "Run the review to generate a decision.";
+            if (followupContainer) {
+                followupContainer.innerHTML = "";
+            }
+            const p = document.createElement("p");
+            p.className = "muted";
+            p.textContent =
+                "Once the debate completes, the consolidated decision will appear here.";
+            decisionContent.appendChild(p);
+            return;
+        }
+
+        decisionSummary.textContent = metadata.paused_for_user
+            ? "Reviewer pause awaiting clarifications"
+            : `${outcome} outcome available`;
+
+        const topRow = document.createElement("div");
+        topRow.className = "decision-top";
+
+        const decisionCard = document.createElement("div");
+        decisionCard.className = "decision-card";
+        decisionCard.innerHTML = `<div class="decision-card__label muted">Final outcome</div>
         <div class="decision-card__outcome" style="color:${decisionColor(outcome)}">${escapeHtml(outcome)}</div>
         <p>${escapeHtml(decision.rationale || "No rationale provided.")}</p>`;
-    const interpreterRec = decision.interpreter_recommendation;
-    if (interpreterRec) {
-        const interp = document.createElement("div");
-        const color = decisionColor(interpreterRec);
-        interp.className = "muted";
-        const safeRec = escapeHtml(interpreterRec);
-        const pill = `<span class="decision-pill" style="color:${color}; border-color:${color}">${safeRec}</span>`;
-        const label =
-            interpreterRec === outcome
-                ? `Interpreter confirmed ${pill}`
-                : `Interpreter suggested ${pill}`;
-        interp.innerHTML = label;
-        decisionCard.appendChild(interp);
+        const interpreterRec = decision.interpreter_recommendation;
+        if (interpreterRec) {
+            const interp = document.createElement("div");
+            const color = decisionColor(interpreterRec);
+            interp.className = "muted";
+            const safeRec = escapeHtml(interpreterRec);
+            const pill = `<span class="decision-pill" style="color:${color}; border-color:${color}">${safeRec}</span>`;
+            const label =
+                interpreterRec === outcome
+                    ? `Interpreter confirmed ${pill}`
+                    : `Interpreter suggested ${pill}`;
+            interp.innerHTML = label;
+            decisionCard.appendChild(interp);
+        }
+        topRow.appendChild(decisionCard);
+        decisionContent.appendChild(topRow);
+
+        const columns = document.createElement("div");
+        columns.className = "decision-columns";
+
+        const evidenceColumn = document.createElement("div");
+        renderEvidenceGallery(payload, evidenceColumn);
+        columns.appendChild(evidenceColumn);
+
+        const invoiceColumn = document.createElement("div");
+        renderInvoice(payload, invoiceColumn);
+        columns.appendChild(invoiceColumn);
+
+        decisionContent.appendChild(columns);
+
+        renderFollowups(payload);
     }
-    topRow.appendChild(decisionCard);
-    decisionContent.appendChild(topRow);
 
-    const columns = document.createElement("div");
-    columns.className = "decision-columns";
-
-    const evidenceColumn = document.createElement("div");
-    renderEvidenceGallery(payload, evidenceColumn);
-    columns.appendChild(evidenceColumn);
-
-    const invoiceColumn = document.createElement("div");
-    renderInvoice(payload, invoiceColumn);
-    columns.appendChild(invoiceColumn);
-
-    decisionContent.appendChild(columns);
-
-    renderFollowups(payload);
-}
-
-function renderFollowups(payload) {
-    if (!followupContainer) {
-        return;
-    }
-    if (!payload.result) {
+    function renderFollowups(payload) {
+        if (!followupContainer) {
+            return;
+        }
+        if (!payload.result) {
+            followupContainer.innerHTML = "";
+            return;
+        }
         followupContainer.innerHTML = "";
-        return;
-    }
-    followupContainer.innerHTML = "";
 
-    const sections = [
-        { title: "Objection log", render: renderObjections },
-        { title: "Policy citations", render: renderCitations },
-        { title: "Reviewer checklist", render: renderChecklist },
-    ];
+        const sections = [
+            { title: "Objection log", render: renderObjections },
+            { title: "Policy citations", render: renderCitations },
+            { title: "Reviewer checklist", render: renderChecklist },
+        ];
 
-    sections.forEach(({ title, render }) => {
-        const card = document.createElement("div");
-        card.className = "info-card followup-card";
-        const heading = document.createElement("h3");
-        heading.textContent = title;
-        card.appendChild(heading);
-        const body = document.createElement("div");
-        render(payload, body);
-        card.appendChild(body);
-        followupContainer.appendChild(card);
-    });
-}
-
-function renderContinuePanel(payload) {
-    const paused = payload.metadata && payload.metadata.paused_for_user;
-    if (!paused || payload.job.case_closed) {
-        continueSection.classList.add("hidden");
-        continueBody.innerHTML = "";
-        return;
+        sections.forEach(({ title, render }) => {
+            const card = document.createElement("div");
+            card.className = "info-card followup-card";
+            const heading = document.createElement("h3");
+            heading.textContent = title;
+            card.appendChild(heading);
+            const body = document.createElement("div");
+            render(payload, body);
+            card.appendChild(body);
+            followupContainer.appendChild(card);
+        });
     }
 
-    continueSection.classList.remove("hidden");
-    continueBody.innerHTML = `<form id="continue-form" class="form" enctype="multipart/form-data">
+    function renderContinuePanel(payload) {
+        const paused = payload.metadata && payload.metadata.paused_for_user;
+        if (!paused || payload.job.case_closed) {
+            continueSection.classList.add("hidden");
+            continueBody.innerHTML = "";
+            // Clear stored files when panel is hidden
+            continueFormFiles = { photos: null, invoices: null, fnol_files: null };
+            return;
+        }
+
+        // Check if form already exists to avoid re-rendering
+        const existingForm = document.getElementById("continue-form");
+        if (existingForm) {
+            return; // Form already rendered, don't re-render
+        }
+
+        continueSection.classList.remove("hidden");
+        continueBody.innerHTML = `<form id="continue-form" class="form" enctype="multipart/form-data">
             <div class="form__row">
                 <div class="form__upload">
                     <label for="continue-photos">Additional photos</label>
                     <input id="continue-photos" name="photos" type="file" multiple accept="image/png,image/jpeg,image/webp" />
+                    <div id="continue-photos-list" class="file-list"></div>
                 </div>
                 <div class="form__upload">
                     <label for="continue-invoices">Additional invoices / documents</label>
                     <input id="continue-invoices" name="invoices" type="file" multiple accept="application/pdf" />
+                    <div id="continue-invoices-list" class="file-list"></div>
                 </div>
             </div>
             <div class="form__upload">
                 <label for="continue-fnol">Additional FNOL PDFs</label>
                 <input id="continue-fnol" name="fnol_files" type="file" multiple accept="application/pdf,text/plain" />
+                <div id="continue-fnol-list" class="file-list"></div>
             </div>
             <div class="export-actions">
                 <button class="btn btn--primary" type="submit">Continue review</button>
@@ -782,287 +800,349 @@ function renderContinuePanel(payload) {
             </div>
         </form>`;
 
-    const form = document.getElementById("continue-form");
-    const skipButton = document.getElementById("btn-continue-skip");
-    form.addEventListener("submit", (event) => {
-        event.preventDefault();
-        submitResumeForm(form, true);
-    });
-    skipButton.addEventListener("click", () => submitResumeForm(form, false));
-}
+        const form = document.getElementById("continue-form");
+        const skipButton = document.getElementById("btn-continue-skip");
 
-async function submitResumeForm(form, includeUploads) {
-    const actionButton = form.querySelector("button[type='submit']");
-    const skipButton = document.getElementById("btn-continue-skip");
-    actionButton.disabled = true;
-    skipButton.disabled = true;
-    try {
-        const formData = new FormData();
-        if (includeUploads) {
-            form.querySelectorAll("input[type='file']").forEach((input) => {
-                Array.from(input.files || []).forEach((file) => {
-                    formData.append(input.name, file);
+        // Add file change listeners to display selected files
+        const photoInput = document.getElementById("continue-photos");
+        const invoiceInput = document.getElementById("continue-invoices");
+        const fnolInput = document.getElementById("continue-fnol");
+
+        photoInput.addEventListener("change", () => {
+            continueFormFiles.photos = photoInput.files;
+            updateFileList(photoInput, "continue-photos-list");
+        });
+        invoiceInput.addEventListener("change", () => {
+            continueFormFiles.invoices = invoiceInput.files;
+            updateFileList(invoiceInput, "continue-invoices-list");
+        });
+        fnolInput.addEventListener("change", () => {
+            continueFormFiles.fnol_files = fnolInput.files;
+            updateFileList(fnolInput, "continue-fnol-list");
+        });
+
+        // Restore previously selected files if any
+        if (continueFormFiles.photos && continueFormFiles.photos.length > 0) {
+            updateFileList(photoInput, "continue-photos-list");
+        }
+        if (continueFormFiles.invoices && continueFormFiles.invoices.length > 0) {
+            updateFileList(invoiceInput, "continue-invoices-list");
+        }
+        if (continueFormFiles.fnol_files && continueFormFiles.fnol_files.length > 0) {
+            updateFileList(fnolInput, "continue-fnol-list");
+        }
+
+        form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            submitResumeForm(form, true);
+        });
+        skipButton.addEventListener("click", () => submitResumeForm(form, false));
+    }
+
+    function updateFileList(inputElement, listElementId) {
+        const listElement = document.getElementById(listElementId);
+        if (!listElement) return;
+
+        listElement.innerHTML = "";
+
+        if (inputElement.files.length === 0) {
+            listElement.innerHTML = '<span class="form__hint">No files chosen</span>';
+            return;
+        }
+
+        const ul = document.createElement("ul");
+        ul.className = "file-list__items";
+
+        Array.from(inputElement.files).forEach((file) => {
+            const li = document.createElement("li");
+            li.className = "file-list__item";
+            li.textContent = `${file.name} (${formatFileSize(file.size)})`;
+            ul.appendChild(li);
+        });
+
+        listElement.appendChild(ul);
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes === 0) return "0 B";
+        const k = 1024;
+        const sizes = ["B", "KB", "MB", "GB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + " " + sizes[i];
+    }
+
+    async function submitResumeForm(form, includeUploads) {
+        const actionButton = form.querySelector("button[type='submit']");
+        const skipButton = document.getElementById("btn-continue-skip");
+        actionButton.disabled = true;
+        skipButton.disabled = true;
+        try {
+            const formData = new FormData();
+            if (includeUploads) {
+                form.querySelectorAll("input[type='file']").forEach((input) => {
+                    Array.from(input.files || []).forEach((file) => {
+                        formData.append(input.name, file);
+                    });
                 });
+            }
+            const response = await fetch(`/api/claims/${jobId}/continue`, {
+                method: "POST",
+                body: formData,
             });
+            if (!response.ok) {
+                const detail = await response.json().catch(() => ({}));
+                throw new Error(detail.detail || "Failed to continue review");
+            }
+            showToast(
+                includeUploads
+                    ? "Supplemental evidence submitted."
+                    : "Continuing without uploads.",
+            );
+            schedulePoll(true);
+        } catch (error) {
+            showToast(error.message || "Unable to continue review.", true);
+        } finally {
+            actionButton.disabled = false;
+            skipButton.disabled = false;
         }
-        const response = await fetch(`/api/claims/${jobId}/continue`, {
-            method: "POST",
-            body: formData,
-        });
-        if (!response.ok) {
-            const detail = await response.json().catch(() => ({}));
-            throw new Error(detail.detail || "Failed to continue review");
+    }
+
+    function renderStory(payload) {
+        const highlights = payload.job.story_highlights || [];
+        if (!payload.job.story_mode || !highlights.length) {
+            storyPanel.classList.add("hidden");
+            return;
         }
-        showToast(
-            includeUploads
-                ? "Supplemental evidence submitted."
-                : "Continuing without uploads.",
-        );
-        schedulePoll(true);
-    } catch (error) {
-        showToast(error.message || "Unable to continue review.", true);
-    } finally {
-        actionButton.disabled = false;
-        skipButton.disabled = false;
+        storyPanel.classList.remove("hidden");
+        const index = payload.job.story_index || 0;
+        storyCaption.textContent = highlights[index % highlights.length];
     }
-}
 
-function renderStory(payload) {
-    const highlights = payload.job.story_highlights || [];
-    if (!payload.job.story_mode || !highlights.length) {
-        storyPanel.classList.add("hidden");
-        return;
-    }
-    storyPanel.classList.remove("hidden");
-    const index = payload.job.story_index || 0;
-    storyCaption.textContent = highlights[index % highlights.length];
-}
-
-function updateExportsState(payload) {
-    const hasResults = payload.result && payload.result.turns;
-    btnEmail.disabled = !hasResults;
-    btnDownload.disabled = !hasResults;
-    if (payload.job.case_closed) {
-        btnCloseCase.classList.add("hidden");
-        btnReopenCase.classList.remove("hidden");
-    } else {
-        btnCloseCase.classList.remove("hidden");
-        btnReopenCase.classList.add("hidden");
-    }
-    if (followupContainer) {
-        if (hasResults) {
-            followupContainer.classList.remove("hidden");
+    function updateExportsState(payload) {
+        const hasResults = payload.result && payload.result.turns;
+        btnEmail.disabled = !hasResults;
+        btnDownload.disabled = !hasResults;
+        if (payload.job.case_closed) {
+            btnCloseCase.classList.add("hidden");
+            btnReopenCase.classList.remove("hidden");
         } else {
-            followupContainer.classList.add("hidden");
-            followupContainer.innerHTML = "";
+            btnCloseCase.classList.remove("hidden");
+            btnReopenCase.classList.add("hidden");
+        }
+        if (followupContainer) {
+            if (hasResults) {
+                followupContainer.classList.remove("hidden");
+            } else {
+                followupContainer.classList.add("hidden");
+                followupContainer.innerHTML = "";
+            }
         }
     }
-}
 
-async function handleChecklistChange() {
-    if (checklistLock) return;
-    try {
-        checklistLock = true;
-        const checked = Array.from(
-            decisionContent.querySelectorAll(".checklist input[type='checkbox']"),
-        )
-            .filter((input) => input.checked)
-            .map((input) => input.dataset.item);
+    async function handleChecklistChange() {
+        if (checklistLock) return;
+        try {
+            checklistLock = true;
+            const checked = Array.from(
+                decisionContent.querySelectorAll(".checklist input[type='checkbox']"),
+            )
+                .filter((input) => input.checked)
+                .map((input) => input.dataset.item);
 
-        const params = new URLSearchParams();
-        checked.forEach((item) => params.append("items", item));
+            const params = new URLSearchParams();
+            checked.forEach((item) => params.append("items", item));
 
-        const response = await fetch(`/api/claims/${jobId}/checklist`, {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: params.toString(),
+            const response = await fetch(`/api/claims/${jobId}/checklist`, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: params.toString(),
+            });
+            if (!response.ok) {
+                throw new Error("Failed to update checklist");
+            }
+            await response.json();
+        } catch (error) {
+            showToast(error.message || "Checklist update failed.", true);
+        } finally {
+            checklistLock = false;
+        }
+    }
+
+    async function generateEmail() {
+        try {
+            btnEmail.disabled = true;
+            const response = await fetch(`/api/claims/${jobId}/email`, { method: "POST" });
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload.detail || "Unable to generate email draft");
+            }
+            emailDraft.textContent = payload.email || "";
+            emailDraft.classList.remove("hidden");
+            showToast("RFI email draft ready.");
+        } catch (error) {
+            showToast(error.message || "Email generation failed.", true);
+        } finally {
+            btnEmail.disabled = false;
+        }
+    }
+
+    async function downloadPacket() {
+        try {
+            btnDownload.disabled = true;
+            const response = await fetch(`/api/claims/${jobId}/packet`);
+            if (!response.ok) {
+                const detail = await response.json().catch(() => ({}));
+                throw new Error(detail.detail || "Unable to download packet");
+            }
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement("a");
+            anchor.href = url;
+            anchor.download = `${caseId || "claim"}_packet.zip`;
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            showToast(error.message || "Download failed.", true);
+        } finally {
+            btnDownload.disabled = false;
+        }
+    }
+
+    async function closeCase() {
+        try {
+            const response = await fetch(`/api/claims/${jobId}/close`, { method: "POST" });
+            if (!response.ok) {
+                throw new Error("Unable to close case.");
+            }
+            showToast("Case closed.");
+            schedulePoll(true);
+        } catch (error) {
+            showToast(error.message || "Case action failed.", true);
+        }
+    }
+
+    async function reopenCase() {
+        try {
+            const response = await fetch(`/api/claims/${jobId}/reopen`, {
+                method: "POST",
+            });
+            if (!response.ok) {
+                throw new Error("Unable to reopen case.");
+            }
+            showToast("Case reopened.");
+            schedulePoll(true);
+        } catch (error) {
+            showToast(error.message || "Case action failed.", true);
+        }
+    }
+
+    async function storyAdvance(endpoint) {
+        try {
+            const response = await fetch(`/api/story/${jobId}/${endpoint}`, {
+                method: "POST",
+            });
+            if (!response.ok) {
+                throw new Error("Story action failed");
+            }
+            schedulePoll(true);
+        } catch (error) {
+            showToast(error.message || "Story action failed.", true);
+        }
+    }
+
+    function render(payload) {
+        const badge = createBadge(payload.job.status);
+        statusBadge.textContent = badge.text;
+        statusBadge.className = `badge ${badge.cls}`;
+        messageEl.textContent = payload.job.message || "";
+        createdEl.textContent = formatDate(payload.job.created_at);
+        updatedEl.textContent = formatDate(payload.job.updated_at);
+        if (payload.job.error) {
+            showToast(payload.job.error, true);
+        }
+
+        renderStepper(payload);
+        renderStory(payload);
+        renderKPIs(payload);
+        renderClarification(payload);
+        renderMetrics(payload);
+        renderIntake(payload);
+        renderDebate(payload);
+        renderDecision(payload);
+        renderContinuePanel(payload);
+        updateExportsState(payload);
+    }
+
+    async function fetchStatus(silent) {
+        try {
+            const response = await fetch(`/api/claims/${jobId}`);
+            if (!response.ok) {
+                const detail = await response.json().catch(() => ({}));
+                throw new Error(detail.detail || "Failed to load job status");
+            }
+            const payload = await response.json();
+            render(payload);
+            if (!silent) {
+                showToast("Status updated");
+            }
+            if (payload.job.status === "completed" && !payload.metadata.paused_for_user) {
+                stopPoll();
+            } else if (payload.job.status === "error") {
+                stopPoll();
+            }
+        } catch (error) {
+            showToast(error.message || "Unable to fetch status.", true);
+        }
+    }
+
+    function stopPoll() {
+        if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+        }
+    }
+
+    function schedulePoll(immediate) {
+        stopPoll();
+        if (immediate) {
+            fetchStatus(true);
+        }
+        pollTimer = setInterval(() => fetchStatus(true), pollIntervalMs);
+    }
+
+    function showToast(message, isError) {
+        if (!message) {
+            return;
+        }
+        let toast = document.querySelector(".toast");
+        if (!toast) {
+            toast = document.createElement("div");
+            toast.className = "toast";
+            document.body.appendChild(toast);
+        }
+        toast.textContent = message;
+        toast.style.background = isError ? "#b91c1c" : "#1f2937";
+        requestAnimationFrame(() => {
+            toast.classList.add("toast--visible");
+            setTimeout(() => toast.classList.remove("toast--visible"), 3200);
         });
-        if (!response.ok) {
-            throw new Error("Failed to update checklist");
-        }
-        await response.json();
-    } catch (error) {
-        showToast(error.message || "Checklist update failed.", true);
-    } finally {
-        checklistLock = false;
-    }
-}
-
-async function generateEmail() {
-    try {
-        btnEmail.disabled = true;
-        const response = await fetch(`/api/claims/${jobId}/email`, { method: "POST" });
-        const payload = await response.json();
-        if (!response.ok) {
-            throw new Error(payload.detail || "Unable to generate email draft");
-        }
-        emailDraft.textContent = payload.email || "";
-        emailDraft.classList.remove("hidden");
-        showToast("RFI email draft ready.");
-    } catch (error) {
-        showToast(error.message || "Email generation failed.", true);
-    } finally {
-        btnEmail.disabled = false;
-    }
-}
-
-async function downloadPacket() {
-    try {
-        btnDownload.disabled = true;
-        const response = await fetch(`/api/claims/${jobId}/packet`);
-        if (!response.ok) {
-            const detail = await response.json().catch(() => ({}));
-            throw new Error(detail.detail || "Unable to download packet");
-        }
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = `${caseId || "claim"}_packet.zip`;
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-        URL.revokeObjectURL(url);
-    } catch (error) {
-        showToast(error.message || "Download failed.", true);
-    } finally {
-        btnDownload.disabled = false;
-    }
-}
-
-async function closeCase() {
-    try {
-        const response = await fetch(`/api/claims/${jobId}/close`, { method: "POST" });
-        if (!response.ok) {
-            throw new Error("Unable to close case.");
-        }
-        showToast("Case closed.");
-        schedulePoll(true);
-    } catch (error) {
-        showToast(error.message || "Case action failed.", true);
-    }
-}
-
-async function reopenCase() {
-    try {
-        const response = await fetch(`/api/claims/${jobId}/reopen`, {
-            method: "POST",
-        });
-        if (!response.ok) {
-            throw new Error("Unable to reopen case.");
-        }
-        showToast("Case reopened.");
-        schedulePoll(true);
-    } catch (error) {
-        showToast(error.message || "Case action failed.", true);
-    }
-}
-
-async function storyAdvance(endpoint) {
-    try {
-        const response = await fetch(`/api/story/${jobId}/${endpoint}`, {
-            method: "POST",
-        });
-        if (!response.ok) {
-            throw new Error("Story action failed");
-        }
-        schedulePoll(true);
-    } catch (error) {
-        showToast(error.message || "Story action failed.", true);
-    }
-}
-
-function render(payload) {
-    const badge = createBadge(payload.job.status);
-    statusBadge.textContent = badge.text;
-    statusBadge.className = `badge ${badge.cls}`;
-    messageEl.textContent = payload.job.message || "";
-    createdEl.textContent = formatDate(payload.job.created_at);
-    updatedEl.textContent = formatDate(payload.job.updated_at);
-    if (payload.job.error) {
-        showToast(payload.job.error, true);
     }
 
-    renderStepper(payload);
-    renderStory(payload);
-    renderKPIs(payload);
-    renderClarification(payload);
-    renderMetrics(payload);
-    renderIntake(payload);
-    renderDebate(payload);
-    renderDecision(payload);
-    renderContinuePanel(payload);
-    updateExportsState(payload);
-}
-
-async function fetchStatus(silent) {
-    try {
-        const response = await fetch(`/api/claims/${jobId}`);
-        if (!response.ok) {
-            const detail = await response.json().catch(() => ({}));
-            throw new Error(detail.detail || "Failed to load job status");
-        }
-        const payload = await response.json();
-        render(payload);
-        if (!silent) {
-            showToast("Status updated");
-        }
-        if (payload.job.status === "completed" && !payload.metadata.paused_for_user) {
-            stopPoll();
-        } else if (payload.job.status === "error") {
-            stopPoll();
-        }
-    } catch (error) {
-        showToast(error.message || "Unable to fetch status.", true);
+    refreshButton.addEventListener("click", () => fetchStatus(true));
+    btnEmail.addEventListener("click", generateEmail);
+    btnDownload.addEventListener("click", downloadPacket);
+    btnCloseCase.addEventListener("click", closeCase);
+    btnReopenCase.addEventListener("click", reopenCase);
+    if (storyNext) {
+        storyNext.addEventListener("click", () => storyAdvance("next"));
     }
-}
-
-function stopPoll() {
-    if (pollTimer) {
-        clearInterval(pollTimer);
-        pollTimer = null;
+    if (storyReset) {
+        storyReset.addEventListener("click", () => storyAdvance("reset"));
     }
-}
 
-function schedulePoll(immediate) {
-    stopPoll();
-    if (immediate) {
-        fetchStatus(true);
-    }
-    pollTimer = setInterval(() => fetchStatus(true), pollIntervalMs);
-}
-
-function showToast(message, isError) {
-    if (!message) {
-        return;
-    }
-    let toast = document.querySelector(".toast");
-    if (!toast) {
-        toast = document.createElement("div");
-        toast.className = "toast";
-        document.body.appendChild(toast);
-    }
-    toast.textContent = message;
-    toast.style.background = isError ? "#b91c1c" : "#1f2937";
-    requestAnimationFrame(() => {
-        toast.classList.add("toast--visible");
-        setTimeout(() => toast.classList.remove("toast--visible"), 3200);
-    });
-}
-
-refreshButton.addEventListener("click", () => fetchStatus(true));
-btnEmail.addEventListener("click", generateEmail);
-btnDownload.addEventListener("click", downloadPacket);
-btnCloseCase.addEventListener("click", closeCase);
-btnReopenCase.addEventListener("click", reopenCase);
-if (storyNext) {
-    storyNext.addEventListener("click", () => storyAdvance("next"));
-}
-if (storyReset) {
-    storyReset.addEventListener("click", () => storyAdvance("reset"));
-}
-
-schedulePoll(true);
-fetchStatus(true);
+    schedulePoll(true);
+    fetchStatus(true);
 
 })();
