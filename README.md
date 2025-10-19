@@ -99,4 +99,4 @@ Edit `config.yaml` to customize:
 
 ## License
 
-Proprietary - Synechron Internal Use
+MIT
