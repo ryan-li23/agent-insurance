@@ -1,0 +1,101 @@
+﻿{% extends "base.html" %}
+
+{% block content %}
+<section class="hero">
+    <div class="hero__text">
+        <h1>Accelerate coverage calls with trusted guardrails</h1>
+        <p>Upload FNOL narratives, invoices, and scene photos to orchestrate the Curator, Interpreter, and Reviewer agents. The backend uses Bedrock models plus FAISS policy retrieval to deliver a policy-backed decision package.</p>
+        <ul class="hero__stats">
+            <li><strong>{{ max_file_size }}&nbsp;MB</strong> max per file</li>
+            <li><strong>{{ max_total_size }}&nbsp;MB</strong> combined upload limit</li>
+            <li>JPEG · PNG · WEBP · PDF · TXT</li>
+        </ul>
+    </div>
+    <div class="hero__card">
+        <div class="case-pill">New case ID</div>
+        <div class="case-value">{{ case_id }}</div>
+        <p>Every review runs in its own workspace. After submission you can monitor progress, provide clarifications, and export decision packets.</p>
+    </div>
+</section>
+
+<section class="layout-grid">
+    <div class="card">
+        <h2>Submit a custom claim</h2>
+        <form class="form" action="/submit" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="case_id" value="{{ case_id }}" />
+            <div class="form__row">
+                <div class="form__field">
+                    <label for="loss-date">Date &amp; time of loss</label>
+                    <input id="loss-date" name="date_of_loss" type="datetime-local" />
+                </div>
+                <div class="form__field">
+                    <label for="scenario-hint">Scenario hint (optional)</label>
+                    <input id="scenario-hint" name="scenario_hint" type="text" placeholder="case_a, rear_end, ..." />
+                </div>
+            </div>
+            <div class="form__field">
+                <label for="fnol-text">FNOL narrative</label>
+                <textarea id="fnol-text" name="fnol_text" rows="6" placeholder="Paste your FNOL summary or notes here..."></textarea>
+            </div>
+            <div class="form__row">
+                <div class="form__upload">
+                    <label for="photos">Damage photos</label>
+                    <input id="photos" name="photos" type="file" accept="image/png,image/jpeg,image/webp" multiple />
+                    <span class="form__hint">PNG, JPG, WEBP — up to {{ max_files_per_type|default(10) }} per run</span>
+                </div>
+                <div class="form__upload">
+                    <label for="invoices">Invoices &amp; receipts</label>
+                    <input id="invoices" name="invoices" type="file" accept="application/pdf" multiple />
+                    <span class="form__hint">PDF preferred; TXT support for quick tests</span>
+                </div>
+            </div>
+            <div class="form__upload">
+                <label for="fnol-files">FNOL attachments</label>
+                <input id="fnol-files" name="fnol_files" type="file" accept="application/pdf,text/plain" multiple />
+                <span class="form__hint">Attach supplementary FNOL PDFs or notes</span>
+            </div>
+            <button class="btn btn--primary" type="submit">Start coverage review</button>
+        </form>
+    </div>
+    <div class="card">
+        <h2>Try guided demos</h2>
+        <p>Experience the full workflow instantly by running one of the curated scenarios or launching the narrated story mode.</p>
+        <form class="form" action="/demo/sample" method="post">
+            <label for="sample-case">Sample claim</label>
+            <select id="sample-case" name="case_key">
+                {% for case in sample_cases %}
+                <option value="{{ case.value }}">{{ case.label }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn" type="submit">Run sample review</button>
+        </form>
+        <form class="form" action="/demo/story" method="post">
+            <label for="story-case">Story mode</label>
+            <select id="story-case" name="case_key">
+                {% for case in sample_cases %}
+                <option value="{{ case.value }}" {% if loop.first %}selected{% endif %}>{{ case.label }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn--secondary" type="submit">Launch narrated walkthrough</button>
+        </form>
+        <div class="card__footnote">
+            Sample uploads are bundled under <code>data/sample_cases</code>. The backend keeps everything in-memory so you can safely iterate without touching S3 yet.
+        </div>
+    </div>
+</section>
+
+<section class="info-grid">
+    <div class="info-card">
+        <h3>What happens next?</h3>
+        <ol>
+            <li>The backend builds a FAISS-enhanced prompt with your artifacts.</li>
+            <li>Curator, Interpreter, Reviewer, and Supervisor collaborate via Bedrock.</li>
+            <li>You can add clarifying evidence, approve decisions, and export packets.</li>
+        </ol>
+    </div>
+    <div class="info-card">
+        <h3>Need back-end changes?</h3>
+        <p>Configuration lives in <code>config.yaml</code> and <code>backend/</code>. You can swap storage backends, tuning parameters, or Bedrock models without touching this UI.</p>
+    </div>
+</section>
+{% endblock %}

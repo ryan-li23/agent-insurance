@@ -19,6 +19,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the application
 COPY . /app
 
-# Streamlit
-EXPOSE 8501
-CMD ["sh", "-c", "streamlit run app.py --server.address 0.0.0.0 --server.port ${PORT:-8501} --server.enableWebsocketCompression=false --server.headless true"]
+# FastAPI + Uvicorn
+EXPOSE 8080
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8080", "--proxy-headers", "--forwarded-allow-ips", "*", "--workers", "1"]
