@@ -1,0 +1,13 @@
+.env
+.venv/
+pycache/
+.pyc
+logs/
+data/uploads/
+data/policies/.pdf
+test_data/
+doc_initial/
+sample_data/
+.git
+.vscode
+.idea

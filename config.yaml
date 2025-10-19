@@ -1,0 +1,60 @@
+# AWS Configuration
+aws:
+  region: us-east-1
+  bedrock:
+    model_id: amazon.nova-pro-v1:0
+    embedding_model_id: amazon.titan-embed-text-v2:0
+    timeout: 3600
+    max_retries: 3
+
+# Optional: Agents for Amazon Bedrock (managed agents)
+bedrock_agents:
+  enabled: false
+  curator:
+    agent_id: ""
+    agent_alias_id: ""
+  interpreter:
+    agent_id: ""
+    agent_alias_id: ""
+  reviewer:
+    agent_id: ""
+    agent_alias_id: ""
+
+# FAISS Configuration
+vector_store:
+  index_path: data/policy_index.faiss
+  metadata_path: data/policy_metadata.json
+  dimension: 1024
+  chunk_size: 500
+  chunk_overlap: 50
+
+# Agent Configuration
+agents:
+  max_rounds: 2
+  curator:
+    name: Evidence Curator
+    instructions: |
+      Extract and normalize all claim evidence from uploaded documents.
+      Provide structured observations with confidence scores.
+  interpreter:
+    name: Policy Interpreter
+    instructions: |
+      Map claim facts to policy clauses and provide coverage recommendations.
+      Cite specific policy sections with page numbers.
+  reviewer:
+    name: Compliance Reviewer
+    instructions: |
+      Adversarially challenge coverage decisions.
+      Flag inconsistencies, fraud indicators, and missing evidence.
+
+# Storage Configuration
+storage:
+  policy_dir: data/policies
+  sample_cases_dir: data/sample_cases
+  uploads_dir: data/uploads
+
+# Logging Configuration
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: logs/claims_reasoner.log
