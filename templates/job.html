@@ -1,0 +1,95 @@
+﻿{% extends "base.html" %}
+
+{% block content %}
+<section class="job-hero">
+    <div>
+        <h1>Case {{ case_id }}</h1>
+        <p id="job-message">Checking status…</p>
+        <dl class="job-meta">
+            <div>
+                <dt>Status</dt>
+                <dd><span id="job-status-badge" class="badge badge--upcoming">Queued</span></dd>
+            </div>
+            <div>
+                <dt>Created</dt>
+                <dd id="job-created">—</dd>
+            </div>
+            <div>
+                <dt>Last updated</dt>
+                <dd id="job-updated">—</dd>
+            </div>
+        </dl>
+    </div>
+    <div class="job-actions">
+        <button id="btn-refresh" class="btn btn--ghost" type="button">Refresh now</button>
+    </div>
+</section>
+
+<section id="stepper" class="stepper"></section>
+
+<section id="story-panel" class="story-panel hidden">
+    <div class="story-panel__info">
+        <div class="story-panel__title">Story mode</div>
+        <div class="story-panel__caption" id="story-caption"></div>
+    </div>
+    <div class="story-panel__actions">
+        <button id="btn-story-next" class="btn btn--secondary" type="button">Next highlight</button>
+        <button id="btn-story-reset" class="btn btn--ghost" type="button">Restart</button>
+    </div>
+</section>
+
+<section id="intake-section" class="card-section">
+    <div class="section-header">
+        <h2>Step 1 — Evidence intake</h2>
+        <span id="intake-summary" class="section-caption"></span>
+    </div>
+    <div id="intake-content" class="grid-two"></div>
+</section>
+
+<section id="debate-section" class="card-section">
+    <div class="section-header">
+        <h2>Step 2 — Agent-to-agent debate</h2>
+        <span id="debate-summary" class="section-caption"></span>
+    </div>
+    <div id="debate-content" class="debate-timeline"></div>
+</section>
+
+<section id="decision-section" class="card-section">
+    <div class="section-header">
+        <h2>Step 3 — Decision review</h2>
+        <span id="decision-summary" class="section-caption"></span>
+    </div>
+    <div id="decision-content" class="decision-grid"></div>
+</section>
+
+<section id="insights-section" class="card-section">
+    <div id="kpi-cards" class="kpi-grid"></div>
+    <div class="insight-grid">
+        <div id="clarification-card" class="info-card"></div>
+        <div id="metrics-card" class="info-card"></div>
+    </div>
+</section>
+
+<section id="continue-section" class="card-section hidden">
+    <div class="section-header">
+        <h2>Reviewer pause — provide clarifications</h2>
+        <span class="section-caption">Upload the requested artifacts or continue without them.</span>
+    </div>
+    <div id="continue-body"></div>
+</section>
+
+<section id="exports-section" class="card-section">
+    <div class="section-header">
+        <h2>Exports &amp; follow-ups</h2>
+        <span class="section-caption">Generate the RFI email, download the decision packet, or lock the case.</span>
+    </div>
+    <div id="followup-content" class="followup-grid"></div>
+    <div class="export-actions">
+        <button id="btn-generate-email" class="btn" type="button">Generate RFI email</button>
+        <button id="btn-download-packet" class="btn btn--secondary" type="button">Download case packet (ZIP)</button>
+        <button id="btn-close-case" class="btn btn--ghost" type="button">Close case</button>
+        <button id="btn-reopen-case" class="btn btn--ghost hidden" type="button">Reopen case</button>
+    </div>
+    <pre id="email-draft" class="email-draft hidden"></pre>
+</section>
+{% endblock %}

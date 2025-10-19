@@ -1,0 +1,29 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ app_title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}" />
+    <script defer src="{{ url_for('static', path='/app.js') }}"></script>
+</head>
+<body class="app-body" data-job-id="{{ job_id|default('') }}" data-case-id="{{ case_id|default('') }}">
+    <header class="top-bar">
+        <div class="top-bar__brand">
+            <img src="{{ url_for('static', path='/synechron-logo.png') }}" alt="Synechron" class="brand-logo" />
+            <div>
+                <div class="brand-title">{{ app_title }}</div>
+                <div class="brand-subtitle">Multi-agent claim review with policy-backed decisions</div>
+            </div>
+        </div>
+        <nav class="top-bar__nav">
+            <a href="/" class="nav-link">New claim</a>
+            <a href="/" class="nav-link">Home</a>
+        </nav>
+    </header>
+    <main class="app-main">
+        {% block content %}{% endblock %}
+    </main>
+    <div id="toast-anchor"></div>
+</body>
+</html>
