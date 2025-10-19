@@ -429,12 +429,12 @@
             } catch (err) {
                 const hasDetails = cleaned.includes("<details");
                 if (hasDetails) {
-                    body.innerHTML = cleaned.replace(/\n/g, "<br>");
-                    persistHtmlDetails(
-                        body,
-                        `debate-inline-${index}`,
-                        openDebateInlineDetails
-                    );
+                body.innerHTML = cleaned.replace(/\n/g, "<br>");
+                persistHtmlDetails(
+                    body,
+                    `debate-inline-${index}`,
+                    openDebateInlineDetails
+                );
                 } else {
                     body.innerHTML = escapeHtml(cleaned).replace(/\n/g, "<br>");
                 }
@@ -512,6 +512,17 @@
                         "Global assessment",
                         entry.global_assessment,
                         `evidence-${name}-global`,
+                        openEvidenceDetails
+                    )
+                );
+            }
+
+            if (entry.chronology) {
+                wrapper.appendChild(
+                    createJsonDetails(
+                        "Chronology",
+                        entry.chronology,
+                        `evidence-${name}-chronology`,
                         openEvidenceDetails
                     )
                 );
