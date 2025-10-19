@@ -12,7 +12,7 @@ This system uses three specialized AI agents to collaboratively process insuranc
 
 ## Architecture
 
-- **Frontend**: Streamlit web interface for claim submission and review
+- **Frontend**: FastAPI + Jinja server-rendered web UI for claim submission and review
 - **Backend**: Multi-agent orchestration using AWS Bedrock Converse API (optional: Agents for Amazon Bedrock)
 - **AI Models**: AWS Bedrock Nova Pro for reasoning, Titan for embeddings
 - **Vector Store**: FAISS for semantic policy retrieval
@@ -44,8 +44,10 @@ This system uses three specialized AI agents to collaboratively process insuranc
 
 4. **Run Application**
    ```bash
-   # Start Streamlit UI
-   streamlit run app.py
+   # Start the FastAPI UI (with auto-reload for local development)
+   uvicorn server:app --host 0.0.0.0 --port 8080 --reload
+
+   # Then browse to http://localhost:8080
    ```
 
 ## Configuration
@@ -65,30 +67,32 @@ Edit `config.yaml` to customize:
 ## Project Structure
 
 ```
-├── app.py                      # Streamlit UI
-├── config.yaml                 # Configuration
-├── requirements.txt            # Dependencies
-├── backend/
-│   ├── reasoner.py            # Main orchestration
-│   ├── agents/                # AI agents
-│   ├── models/                # Data models
-│   ├── orchestration/         # Multi-agent coordination
-│   ├── plugins/               # Document processing tools
-│   ├── storage/               # FAISS vector store
-│   └── utils/                 # Utilities and configuration
-├── data/                      # Policy documents and indexes
-└── .kiro/                     # Development specs and guidelines
+server.py                  # FastAPI entrypoint for the web UI
+config.yaml               # Configuration
+requirements.txt          # Dependencies
+backend/
++-- reasoner.py           # Main orchestration
++-- agents/               # AI agents
++-- models/               # Data models
++-- orchestration/        # Multi-agent coordination
++-- plugins/              # Document processing tools
++-- storage/              # FAISS vector store
++-- utils/                # Utilities and configuration
+static/                  # Front-end assets (CSS, JS, images)
+templates/               # Jinja2 templates for the web UI
+data/                    # Policy documents and indexes
+.kiro/                   # Development specs and guidelines
 ```
 
 ## Features
 
-- ✅ Multi-agent collaboration with debate and consensus
-- ✅ Semantic policy search with FAISS
-- ✅ Document processing (PDF, images, invoices)
-- ✅ AWS Bedrock integration (Nova Pro, Titan) with multi-round group chat orchestration
-- ✅ Comprehensive error handling and logging
-- ✅ Streamlit web interface
-- ✅ Sample case scenarios for testing
+- Multi-agent collaboration with debate and consensus
+- Semantic policy search with FAISS
+- Document processing (PDF, images, invoices)
+- AWS Bedrock integration (Nova Pro, Titan) with multi-round group chat orchestration
+- Comprehensive error handling and logging
+- FastAPI web interface with responsive reviewer workflow
+- Sample case scenarios for testing
 
 ## Requirements
 
