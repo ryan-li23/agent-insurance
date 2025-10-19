@@ -9,6 +9,7 @@ import threading
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
+from functools import lru_cache
 from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import (
@@ -26,6 +27,7 @@ from fastapi.responses import (
     JSONResponse,
     RedirectResponse,
     StreamingResponse,
+    Response,
 )
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -105,6 +107,26 @@ def _format_currency(value: Any) -> str:
         return f"${float(value):,.2f}"
     except Exception:
         return str(value)
+
+
+@lru_cache(maxsize=1)
+def _load_favicon() -> bytes:
+    """Generate a favicon, preferring the existing Synechron logo asset."""
+
+    logo_path = os.path.join("static", "synechron-logo.png")
+    buffer = io.BytesIO()
+    try:
+        with Image.open(logo_path) as img:
+            icon = img.convert("RGBA")
+            icon.thumbnail((32, 32), Image.LANCZOS)
+            icon.save(buffer, format="ICO", sizes=[(32, 32), (16, 16)])
+    except Exception:
+        fallback = Image.new("RGBA", (32, 32), (24, 24, 27, 255))
+        draw = ImageDraw.Draw(fallback)
+        draw.rounded_rectangle((2, 2, 30, 30), radius=6, fill=(8, 145, 178, 255))
+        draw.text((9, 6), "A", fill=(255, 255, 255, 255))
+        fallback.save(buffer, format="ICO")
+    return buffer.getvalue()
 
 
 def _draw_bbox_preview(img: Image.Image, observations: List[Dict[str, Any]]) -> Image.Image:
@@ -702,6 +724,13 @@ def _job_payload(job: JobRecord) -> Dict[str, Any]:
         "annotated_evidence": _annotated_evidence(job) if job.result else {},
         "checklist": job.checklist,
     }
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon() -> Response:
+    """Serve a cached favicon to satisfy browser requests."""
+
+    return Response(content=_load_favicon(), media_type="image/x-icon")
 
 
 @app.get("/", response_class=HTMLResponse)
