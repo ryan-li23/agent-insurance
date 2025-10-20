@@ -28,8 +28,6 @@ logs/
 *.log
 
 # Data files (user managed)
-data/sample_cases/
-data/uploads/
 
 # Temporary files
 *.tmp
